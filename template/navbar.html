@@ -7,9 +7,26 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav">
+                {% if user %}
                 <li class="nav-item active">
-                    <a class="nav-link" href="#">Home </a>
+                    <a class="nav-link" href="/">Home</a>
                 </li>
+                {% endif %}
+            </ul>
+
+            <ul class="navbar-nav ml-auto">
+                {% if user %}
+                <li class="nav-item">
+                     <a type="button" class="btn btn-outline-light" href="/user">Change Password
+                     </a>
+                </li>
+                {% endif %}
+                {% if user %}
+                <li class="nav-item ml-1">
+                    <a type="button" class="btn btn-outline-light" href="/auth/logout">Logout</a>
+                </li>
+                {% endif %}
+
             </ul>
         </div>
     </nav>

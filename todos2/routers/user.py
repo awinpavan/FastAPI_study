@@ -1,5 +1,5 @@
 from pydantic import Field
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Form
 from typing import Annotated
 from passlib.context import CryptContext
 from pydantic import BaseModel
@@ -7,12 +7,15 @@ from sqlalchemy.orm import Session
 from ..models import Users
 from ..database4 import sessionlocal
 from .auth import get_current_user
-
+from starlette.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
 
 router = APIRouter(
     prefix='/user',
     tags=['/user']
 )
+
+template = Jinja2Templates(directory='template')
 
 
 def get_db():
@@ -25,7 +28,7 @@ def get_db():
 
 db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
-bcrypt = CryptContext(schemes=['bcrypt'], deprecated='auto')
+bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 
 
 class CreateUserRequest(BaseModel):
@@ -35,6 +38,35 @@ class CreateUserRequest(BaseModel):
 
 class PhoneNumber(BaseModel):
     phone_number: int
+
+
+@router.get("/", response_class=HTMLResponse)
+async def change(request: Request):
+    user = await get_current_user(request)
+    if user is None:
+        return RedirectResponse(url="/auth", status_code=status.HTTP_302_FOUND)
+    response = template.TemplateResponse("password-change.html", {"request": request, "user": user})
+    return response
+
+
+@router.post("/", response_class=HTMLResponse)
+async def change_user_pass(request: Request, username: str = Form(...), password: str = Form(...),
+                           new_password: str = Form(...), db: Session = Depends(get_db)):
+    user = await get_current_user(request)
+    if user is None:
+        return RedirectResponse(url="/auth", status_code=status.HTTP_302_FOUND)
+
+    verify = db.query(Users).filter(Users.username == username).first()
+    if verify is None or not bcrypt_context.verify(password, verify.hashed_password):
+        msg = "Invalid Username or Password"
+        return template.TemplateResponse("password-change.html", {"request": request, "msg": msg, "user":user})
+
+    hashed_new_password = bcrypt_context.hash(new_password)
+    verify.hashed_password = hashed_new_password
+    db.add(verify)
+    db.commit()
+    msg = "Password Update Successful"
+    return template.TemplateResponse("password-change.html", {"request": request, "msg": msg, "user":user})
 
 
 @router.get('/user', status_code=status.HTTP_200_OK)
@@ -52,9 +84,9 @@ async def password_change(user: user_dependency, db: db_dependency, create_reque
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication invalid')
     change = db.query(Users).filter(Users.id == user.get('id')).first()
-    if not bcrypt.verify(create_request.password, change.hashed_password):
+    if not bcrypt_context.verify(create_request.password, change.hashed_password):
         raise HTTPException(status_code=401, detail='password change error')
-    change.hashed_password = bcrypt.hash(create_request.new_password)
+    change.hashed_password = bcrypt_context.hash(create_request.new_password)
     db.add(change)
     db.commit()
 
@@ -67,5 +99,3 @@ async def phone_number(user: user_dependency, db: db_dependency, create: PhoneNu
     number_model.phone_number = create.phone_number
     db.add(number_model)
     db.commit()
-
-
