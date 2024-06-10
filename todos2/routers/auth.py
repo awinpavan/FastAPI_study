@@ -34,7 +34,6 @@ class LoginForm:
         self.username = form.get('username')
         self.password = form.get('password')
 
-
 async def get_current_user(request: Request):
     try:
         token = request.cookies.get("access_token")
