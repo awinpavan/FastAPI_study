@@ -40,3 +40,22 @@ FastAPI_study/
 ├── requirements.txt # List of Python dependencies
 
 └── README.md 
+
+## 🛠️ Requirements
+Python 3.8+
+
+fastapi
+
+uvicorn
+
+(Optional) sqlite3 or SQLAlchemy if using database integration
+
+## 🚀 Powered By
+FastAPI — Modern, fast Python web framework
+
+Pydantic — Data parsing and validation using Python type hints
+
+Uvicorn — ASGI server implementation for FastAPI apps
+
+## 🔗 Web-Application Link: 
+https://fastapi-study.onrender.com/
